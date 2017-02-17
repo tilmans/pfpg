@@ -4,6 +4,12 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Navigation exposing (Location)
+import AFrame exposing (scene, entity)
+import AFrame.Primitives as AP exposing (..)
+import AFrame.Primitives.Attributes as AA exposing (..)
+import AFrame.Primitives.Camera exposing (..)
+import AFrame.Primitives.Cursor exposing (..)
+import ModelLoader exposing (..)
 
 
 port updateVotes : (List Vote -> msg) -> Sub msg
@@ -15,6 +21,7 @@ port setVote : Vote -> Cmd msg
 type alias Model =
     { votes : List Vote
     , name : String
+    , vote : Maybe Int
     }
 
 
@@ -40,7 +47,7 @@ init location =
         ( name, id ) =
             getIdFrom location.search
     in
-        ( Model [] (Maybe.withDefault "Default" name), Cmd.none )
+        ( Model [] (Maybe.withDefault "Default" name) Nothing, Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -50,7 +57,7 @@ update msg model =
             { model | votes = votes } ! []
 
         SetVote vote ->
-            ( model, setVote (Vote model.name vote) )
+            ( { model | vote = Just vote }, setVote (Vote model.name vote) )
 
         UrlChange location ->
             let
@@ -77,6 +84,22 @@ displayCard value =
 
 view : Model -> Html Msg
 view model =
+    aframeScene model
+
+
+aframeScene : Model -> Html Msg
+aframeScene model =
+    scene
+        []
+        --AA.vrmodeui True ]
+        ([ camera [ position 0 0 0 ] [ cursor [ fuse True ] [] ]
+         ]
+            ++ (List.indexedMap (cardImage model.vote) voteValues)
+        )
+
+
+htmlView : Model -> Html Msg
+htmlView model =
     div []
         [ div [ class "vote-container" ] (List.map (\v -> displayVote v) model.votes)
         , div [ class "card-container" ] (List.map (\c -> displayCard c) voteValues)
@@ -124,3 +147,46 @@ extract lookFor values accum =
             List.head (Maybe.withDefault [] (List.tail subs))
         else
             accum
+
+
+scalefactor =
+    0.03
+
+
+cardImage : Maybe Int -> Int -> Int -> Html Msg
+cardImage selection index number =
+    let
+        xpos =
+            toFloat (index - 3)
+
+        neutral =
+            ( 1, -70 )
+
+        selected =
+            ( 1.5, -30 )
+
+        ( ypos, xrot ) =
+            case selection of
+                Nothing ->
+                    neutral
+
+                Just sel ->
+                    if number == sel then
+                        selected
+                    else
+                        neutral
+
+        cardpos =
+            position xpos ypos -5
+
+        modelurl =
+            "src: url(/models/" ++ (toString number) ++ ".ply)"
+    in
+        entity
+            [ plymodel modelurl
+            , cardpos
+            , scale scalefactor scalefactor scalefactor
+            , rotation xrot 0 0
+            , onClick (SetVote number)
+            ]
+            []
