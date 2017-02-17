@@ -1,5 +1,7 @@
 var config = require("./db");
 
+// https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
+
 firebase.initializeApp(config);
 
 firebase.auth().signInAnonymously().catch(function(error) {

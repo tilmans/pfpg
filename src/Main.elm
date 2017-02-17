@@ -3,6 +3,7 @@ port module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Navigation exposing (Location)
 
 
 port updateVotes : (List Vote -> msg) -> Sub msg
@@ -26,15 +27,20 @@ type alias Vote =
 type Msg
     = VotesUpdated (List Vote)
     | SetVote Int
+    | UrlChange Location
 
 
 voteValues =
     [ 0, 1, 2, 3, 5, 8, 13 ]
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( Model [] "Jack", Cmd.none )
+init : Location -> ( Model, Cmd Msg )
+init location =
+    let
+        ( name, id ) =
+            getIdFrom location.search
+    in
+        ( Model [] (Maybe.withDefault "Default" name), Cmd.none )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -45,6 +51,13 @@ update msg model =
 
         SetVote vote ->
             ( model, setVote (Vote model.name vote) )
+
+        UrlChange location ->
+            let
+                ( name, id ) =
+                    getIdFrom location.search
+            in
+                { model | name = (Maybe.withDefault "Default" name) } ! []
 
 
 subscriptions : Model -> Sub Msg
@@ -72,9 +85,42 @@ view model =
 
 main : Program Never Model Msg
 main =
-    Html.program
+    Navigation.program UrlChange
         { init = init
         , view = view
         , subscriptions = subscriptions
         , update = update
         }
+
+
+getIdFrom : String -> ( Maybe String, Maybe String )
+getIdFrom location =
+    let
+        string =
+            String.dropLeft 1 location
+
+        subs =
+            String.split "&" string
+
+        name =
+            List.foldr (extract "name") Nothing subs
+
+        id =
+            List.foldr (extract "room") Nothing subs
+    in
+        ( name, id )
+
+
+extract : String -> String -> Maybe String -> Maybe String
+extract lookFor values accum =
+    let
+        subs =
+            String.split "=" values
+
+        key =
+            Maybe.withDefault "" (List.head subs)
+    in
+        if key == lookFor then
+            List.head (Maybe.withDefault [] (List.tail subs))
+        else
+            accum
