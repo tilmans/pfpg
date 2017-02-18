@@ -1,4 +1,7 @@
 var config = require("./db");
+var layout = require('aframe-layout').component;
+
+AFRAME.registerComponent('layout', layout);
 
 // https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
 

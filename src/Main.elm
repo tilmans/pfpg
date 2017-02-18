@@ -122,7 +122,7 @@ aframeScene model =
          ]
             ++ (List.indexedMap (cardImage model.vote) voteValues)
             ++ (allPlayers model.votes)
-            ++ []
+            ++ [ box [ id "box" ] [] ]
         )
 
 
@@ -146,7 +146,33 @@ main =
 
 allPlayers : List Vote -> List (Html msg)
 allPlayers votes =
-    [ box [] [] ]
+    [ entity [ layout "type: circle; margin: 10; radius: 5", position 0 0 -5 ]
+        [ entity [ lookAt "#box" ]
+            [ entity
+                [ plymodel "src: url(/models/chr_headphones.ply)"
+                , scale 0.2 0.2 0.2
+                , rotation -90 0 0
+                ]
+                []
+            ]
+        , entity [ lookAt "#box" ]
+            [ entity
+                [ plymodel "src: url(/models/chr_headphones.ply)"
+                , scale 0.2 0.2 0.2
+                , rotation -90 0 0
+                ]
+                []
+            ]
+        , entity [ lookAt "#box" ]
+            [ entity
+                [ plymodel "src: url(/models/chr_headphones.ply)"
+                , scale 0.2 0.2 0.2
+                , rotation -90 0 0
+                ]
+                []
+            ]
+        ]
+    ]
 
 
 getIdFrom : String -> ( Maybe String, Maybe String )
