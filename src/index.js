@@ -3,8 +3,6 @@ var layout = require('aframe-layout').component;
 
 AFRAME.registerComponent('layout', layout);
 
-// https://firebase.google.com/docs/reference/js/firebase.database.OnDisconnect
-
 firebase.initializeApp(config);
 
 firebase.auth().signInAnonymously().catch(function(error) {

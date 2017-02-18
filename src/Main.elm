@@ -10,6 +10,7 @@ import AFrame.Primitives.Attributes as AA exposing (..)
 import AFrame.Primitives.Camera exposing (..)
 import AFrame.Primitives.Cursor exposing (..)
 import ModelLoader exposing (..)
+import Color exposing (rgb)
 
 
 port updateVotes : (List Vote -> msg) -> Sub msg
@@ -66,7 +67,11 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         VotesUpdated votes ->
-            { model | votes = votes } ! []
+            let
+                filterVotes =
+                    List.filter (\v -> v.user /= model.name) votes
+            in
+                { model | votes = filterVotes } ! []
 
         SetVote vote ->
             ( { model | vote = Just vote }, setVote vote )
@@ -118,7 +123,7 @@ aframeScene model =
          , assets []
             [ img [ id "sky", AA.src "sky.jpg" ] []
             ]
-         , sky [ AA.src "#sky" ] []
+         , sky [ color (rgb 3 10 28) ] []
          ]
             ++ (List.indexedMap (cardImage model.vote) voteValues)
             ++ (allPlayers model.votes)
@@ -143,33 +148,66 @@ main =
         }
 
 
-player name =
-    entity [ lookAt "[camera]" ]
-        [ entity
-            [ plymodel "src: url(/models/chr_headphones.ply)"
-            , scale 0.2 0.2 0.2
-            , rotation -90 0 0
+player : Vote -> ( Float, Float ) -> Html msg
+player vote pos =
+    let
+        ( x, y ) =
+            pos
+
+        voteText =
+            if vote.vote == -1 then
+                ""
+            else
+                (toString vote.vote)
+
+        text =
+            vote.user ++ ": " ++ voteText
+    in
+        entity [ lookAt "[camera]", position x 0 y ]
+            [ entity
+                [ plymodel "src: url(/models/chr_headphones.ply)"
+                , scale 0.2 0.2 0.2
+                , rotation -90 0 0
+                ]
+                []
+            , ModelLoader.text
+                [ ModelLoader.value text
+                , ModelLoader.align "center"
+                , anchor "center"
+                , position 0 3 0
+                , scale 2 2 2
+                ]
+                []
             ]
-            []
-        , ModelLoader.text
-            [ ModelLoader.value name
-            , ModelLoader.align "center"
-            , anchor "center"
-            , position 0 3 0
-            , scale 2 2 2
-            ]
-            []
-        ]
 
 
 allPlayers : List Vote -> List (Html msg)
 allPlayers votes =
-    [ entity [ layout "type: circle; radius: 8", position 0 0 -6, rotation 20 0 0 ]
-        [ player "Bob"
-        , player "Pete"
-        , player "dada"
+    let
+        segments =
+            List.length votes
+
+        seg_length =
+            pi / (toFloat segments)
+
+        seg_offset =
+            seg_length / 2
+
+        radius =
+            10
+
+        coords =
+            List.map
+                (\i ->
+                    ( cos ((toFloat i) * seg_length - seg_offset) * radius
+                    , sin ((toFloat i) * seg_length - seg_offset) * radius * -1
+                    )
+                )
+                (List.range 1 segments)
+    in
+        [ entity [ position 0 0 -6, rotation 20 0 0 ]
+            (List.map2 (\v pos -> player v pos) votes coords)
         ]
-    ]
 
 
 getIdFrom : String -> ( Maybe String, Maybe String )
