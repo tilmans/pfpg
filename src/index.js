@@ -28,9 +28,16 @@ votes.on('value', function(snapshot) {
 var Elm = require( './Main' );
 var app = Elm.Main.embed(document.body);
 
+var node = null;
+
+app.ports.setUser.subscribe(function(user) {
+    node = db.ref('votes/'+user);
+    node.set(-1);
+    node.onDisconnect().remove();
+});
+
 app.ports.setVote.subscribe(function(vote) {
-    var myvote = db.ref('votes/'+vote.user);
-    myvote.set(vote.vote);
+    node.set(vote);
 });
 
 function setVotes(val) {

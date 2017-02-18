@@ -15,7 +15,10 @@ import ModelLoader exposing (..)
 port updateVotes : (List Vote -> msg) -> Sub msg
 
 
-port setVote : Vote -> Cmd msg
+port setUser : String -> Cmd msg
+
+
+port setVote : Int -> Cmd msg
 
 
 type alias Model =
@@ -37,6 +40,7 @@ type Msg
     | UrlChange Location
 
 
+voteValues : List number
 voteValues =
     [ 0, 1, 2, 3, 5, 8, 13 ]
 
@@ -46,8 +50,16 @@ init location =
     let
         ( name, id ) =
             getIdFrom location.search
+
+        cmd =
+            case name of
+                Nothing ->
+                    Cmd.none
+
+                Just name ->
+                    setUser name
     in
-        ( Model [] (Maybe.withDefault "Default" name) Nothing, Cmd.none )
+        ( Model [] (Maybe.withDefault "Default" name) Nothing, cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -57,14 +69,22 @@ update msg model =
             { model | votes = votes } ! []
 
         SetVote vote ->
-            ( { model | vote = Just vote }, setVote (Vote model.name vote) )
+            ( { model | vote = Just vote }, setVote vote )
 
         UrlChange location ->
             let
                 ( name, id ) =
                     getIdFrom location.search
+
+                cmd =
+                    case name of
+                        Nothing ->
+                            Cmd.none
+
+                        Just name ->
+                            setUser name
             in
-                { model | name = (Maybe.withDefault "Default" name) } ! []
+                { model | name = (Maybe.withDefault "Default" name) } ! [ cmd ]
 
 
 subscriptions : Model -> Sub Msg
@@ -72,12 +92,14 @@ subscriptions model =
     updateVotes VotesUpdated
 
 
+displayVote : Vote -> Html msg
 displayVote vote =
     div []
         [ div [ class "vote" ] [ text (vote.user ++ ": " ++ (toString vote.vote)) ]
         ]
 
 
+displayCard : Int -> Html Msg
 displayCard value =
     span [ class "card", onClick (SetVote value) ] [ text (toString value) ]
 
@@ -93,8 +115,14 @@ aframeScene model =
         []
         --AA.vrmodeui True ]
         ([ camera [ position 0 0 0 ] [ cursor [ fuse True ] [] ]
+         , assets []
+            [ img [ id "sky", AA.src "sky.jpg" ] []
+            ]
+         , sky [ AA.src "#sky" ] []
          ]
             ++ (List.indexedMap (cardImage model.vote) voteValues)
+            ++ (allPlayers model.votes)
+            ++ []
         )
 
 
@@ -114,6 +142,11 @@ main =
         , subscriptions = subscriptions
         , update = update
         }
+
+
+allPlayers : List Vote -> List (Html msg)
+allPlayers votes =
+    [ box [] [] ]
 
 
 getIdFrom : String -> ( Maybe String, Maybe String )
@@ -149,6 +182,7 @@ extract lookFor values accum =
             accum
 
 
+scalefactor : Float
 scalefactor =
     0.03
 
