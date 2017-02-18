@@ -36,6 +36,6 @@
     "webpack-merge": "^0.14.1"
   },
   "dependencies": {
-    "aframe-extras": "^3.2.6",
+    "aframe-extras": "^3.2.6"
   }
 }

@@ -95,13 +95,13 @@ subscriptions model =
 displayVote : Vote -> Html msg
 displayVote vote =
     div []
-        [ div [ class "vote" ] [ text (vote.user ++ ": " ++ (toString vote.vote)) ]
+        [ div [ class "vote" ] [ Html.text (vote.user ++ ": " ++ (toString vote.vote)) ]
         ]
 
 
 displayCard : Int -> Html Msg
 displayCard value =
-    span [ class "card", onClick (SetVote value) ] [ text (toString value) ]
+    span [ class "card", onClick (SetVote value) ] [ Html.text (toString value) ]
 
 
 view : Model -> Html Msg
@@ -122,7 +122,6 @@ aframeScene model =
          ]
             ++ (List.indexedMap (cardImage model.vote) voteValues)
             ++ (allPlayers model.votes)
-            ++ [ box [ id "box" ] [] ]
         )
 
 
@@ -144,33 +143,31 @@ main =
         }
 
 
+player name =
+    entity [ lookAt "[camera]" ]
+        [ entity
+            [ plymodel "src: url(/models/chr_headphones.ply)"
+            , scale 0.2 0.2 0.2
+            , rotation -90 0 0
+            ]
+            []
+        , ModelLoader.text
+            [ ModelLoader.value name
+            , ModelLoader.align "center"
+            , anchor "center"
+            , position 0 3 0
+            , scale 2 2 2
+            ]
+            []
+        ]
+
+
 allPlayers : List Vote -> List (Html msg)
 allPlayers votes =
-    [ entity [ layout "type: circle; margin: 10; radius: 5", position 0 0 -5 ]
-        [ entity [ lookAt "#box" ]
-            [ entity
-                [ plymodel "src: url(/models/chr_headphones.ply)"
-                , scale 0.2 0.2 0.2
-                , rotation -90 0 0
-                ]
-                []
-            ]
-        , entity [ lookAt "#box" ]
-            [ entity
-                [ plymodel "src: url(/models/chr_headphones.ply)"
-                , scale 0.2 0.2 0.2
-                , rotation -90 0 0
-                ]
-                []
-            ]
-        , entity [ lookAt "#box" ]
-            [ entity
-                [ plymodel "src: url(/models/chr_headphones.ply)"
-                , scale 0.2 0.2 0.2
-                , rotation -90 0 0
-                ]
-                []
-            ]
+    [ entity [ layout "type: circle; radius: 8", position 0 0 -6, rotation 20 0 0 ]
+        [ player "Bob"
+        , player "Pete"
+        , player "dada"
         ]
     ]
 
