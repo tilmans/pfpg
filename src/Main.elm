@@ -121,8 +121,7 @@ aframeScene model =
         --AA.vrmodeui True ]
         ([ camera [ position 0 0 0 ] [ cursor [ fuse True ] [] ]
          , assets []
-            [ img [ id "sky", AA.src "sky.jpg" ] []
-            ]
+            []
          , sky [ color (rgb 3 10 28) ] []
          ]
             ++ (List.indexedMap (cardImage model.vote) voteValues)
