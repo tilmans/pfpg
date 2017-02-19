@@ -3,18 +3,19 @@ var layout = require('aframe-layout').component;
 
 AFRAME.registerComponent('layout', layout);
 
-firebase.initializeApp(config);
-
-firebase.auth().signInAnonymously().catch(function(error) {
-    console.error("Login error: "+error.message);
-});
-
-var db = firebase.database();
 var authenticated = false;
 var myID = null;
 var node = null;
+var guser = null;
 var firstCall = true;
 function authenticate(user) {
+    firebase.initializeApp(config);
+    var db = firebase.database();
+
+    firebase.auth().signInAnonymously().catch(function(error) {
+        console.error("Login error: "+error.message);
+    });
+
     firebase.auth().onAuthStateChanged(function(userdata) {
         console.log("Authenticated "+userdata.uid);
         if (firstCall) {
@@ -30,6 +31,9 @@ function authenticate(user) {
 
         node = db.ref('votes/'+myID);
         node.set({user:user,vote:-1});
+        // Seems like the session is kept
+        // so can't delete without recreating 
+        // later
         node.onDisconnect().remove();
 
         var votes = db.ref('votes');
@@ -48,12 +52,14 @@ var Elm = require( './Main' );
 var app = Elm.Main.embed(document.body);
 
 app.ports.setUser.subscribe(function(user) {
+    console.log("Authenticate "+user);
+    guser = user;
     authenticate(user);
 });
 
 app.ports.setVote.subscribe(function(vote) {
     if (authenticated) {
-        node.child("vote").set(vote);
+        node.set({user:guser,vote:vote});
     }
 });
 

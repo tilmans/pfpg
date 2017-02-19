@@ -1,9 +1,9 @@
 port module Main exposing (..)
 
 import Html exposing (..)
-import Html.Attributes exposing (..)
+import Html.Attributes as HA exposing (..)
 import Html.Events exposing (..)
-import Navigation exposing (Location)
+import Navigation exposing (Location, modifyUrl)
 import AFrame exposing (scene, entity)
 import AFrame.Primitives as AP exposing (..)
 import AFrame.Primitives.Attributes as AA exposing (..)
@@ -24,8 +24,9 @@ port setVote : Int -> Cmd msg
 
 type alias Model =
     { votes : List Vote
-    , name : String
+    , name : Maybe String
     , vote : Maybe Int
+    , inputName : String
     }
 
 
@@ -40,6 +41,8 @@ type Msg
     = VotesUpdated (List Vote)
     | SetVote Int
     | UrlChange Location
+    | Name String
+    | SetName
 
 
 voteValues : List number
@@ -61,7 +64,7 @@ init location =
                 Just name ->
                     setUser name
     in
-        ( Model [] (Maybe.withDefault "Default" name) Nothing, cmd )
+        ( Model [] name Nothing "", cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -90,7 +93,13 @@ update msg model =
                         Just name ->
                             setUser name
             in
-                { model | name = (Maybe.withDefault "Default" name) } ! [ cmd ]
+                { model | name = name } ! [ cmd ]
+
+        Name name ->
+            { model | inputName = name } ! []
+
+        SetName ->
+            model ! [ modifyUrl ("?name=" ++ model.inputName) ]
 
 
 subscriptions : Model -> Sub Msg
@@ -112,14 +121,18 @@ displayCard value =
 
 view : Model -> Html Msg
 view model =
-    aframeScene model
+    case model.name of
+        Nothing ->
+            htmlView model
+
+        Just _ ->
+            aframeScene model
 
 
 aframeScene : Model -> Html Msg
 aframeScene model =
     scene
         []
-        --AA.vrmodeui True ]
         ([ camera [ position 0 0 0 ] [ cursor [ fuse True ] [] ]
          , assets []
             []
@@ -132,9 +145,15 @@ aframeScene model =
 
 htmlView : Model -> Html Msg
 htmlView model =
-    div []
-        [ div [ class "vote-container" ] (List.map (\v -> displayVote v) model.votes)
-        , div [ class "card-container" ] (List.map (\c -> displayCard c) voteValues)
+    div [ id "wrap" ]
+        [ div [ id "inputform" ]
+            [ div [ id "container" ] [ img [ HA.src "login.png" ] [] ]
+              --scene [] [] ]
+            , div [ id "formcontainer" ]
+                [ input [ HA.type_ "text", placeholder "Player Name", onInput Name ] []
+                , button [ HA.disabled (model.inputName == ""), onClick SetName ] [ Html.text "Go!" ]
+                ]
+            ]
         ]
 
 

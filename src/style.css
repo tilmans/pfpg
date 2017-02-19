@@ -1,3 +1,15 @@
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(3,10,28);
+}
+
+html {
+    height: 100%;
+}
+
 .vote-container {
     display:flex;
 }
@@ -11,7 +23,6 @@
     border-color: black;
     padding: 10px;
     margin: 10px;
-    background-color: blue;
 }
 
 .card-container {
@@ -27,4 +38,53 @@
     border-color: black;
     padding: 10px;
     margin: 10px;
+}
+
+#wrap {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    align-content: center;
+}
+
+#inputform {
+    margin-left: auto;
+    margin-right: auto;
+    width: 600px;
+    height: 300px;
+    display: flex;
+}
+
+#container {
+    width: 200px;
+    height: 300px;
+}
+
+#formcontainer {
+    width: 400px;
+    height: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-content: center;
+}
+
+#formcontainer > div {
+    font-size: 30px;
+    margin-top: 100px;
+    margin-bottom: 15px;
+    font-family: "Helvetica", sans-serif;
+}
+
+#formcontainer > input {
+    width: 300px;
+    margin-top: 100px;
+    font-size: 30px;
+    margin-bottom: 15px;
+}
+
+#formcontainer > button {
+    width: 200px;
+    font-size: 30px;
 }

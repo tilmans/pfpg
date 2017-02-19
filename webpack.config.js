@@ -69,7 +69,7 @@ if ( TARGET_ENV === 'development' ) {
         {
           test:    /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
-          loader:  'elm!elm-webpack?debug=false&verbose=true&warn=true'
+          loader:  'elm-hot!elm-webpack?debug=true&verbose=true&warn=true'
         },
         {
           test: /\.(css|scss)$/,
@@ -123,6 +123,9 @@ if ( TARGET_ENV === 'production' ) {
           },
           {
               from: 'src/style.css'
+          },
+          {
+              from: 'src/login.png'
           }
       ]),
 
