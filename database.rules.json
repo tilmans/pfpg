@@ -1,0 +1,11 @@
+{
+    "rules": {    
+        "votes":{
+            ".read": "auth != null",
+            "$uid":{
+                ".write": "$uid === auth.uid"        
+            }
+        }
+    }
+}
+

@@ -30,7 +30,8 @@ type alias Model =
 
 
 type alias Vote =
-    { user : String
+    { id : String
+    , user : String
     , vote : Int
     }
 
@@ -68,10 +69,10 @@ update msg model =
     case msg of
         VotesUpdated votes ->
             let
-                filterVotes =
-                    List.filter (\v -> v.user /= model.name) votes
+                _ =
+                    Debug.log "Votes" votes
             in
-                { model | votes = filterVotes } ! []
+                { model | votes = votes } ! []
 
         SetVote vote ->
             ( { model | vote = Just vote }, setVote vote )

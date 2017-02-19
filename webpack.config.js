@@ -34,6 +34,7 @@ var commonConfig = {
 
   plugins: [
       new CopyWebpackPlugin([
+          
       ]),
 
     new HtmlWebpackPlugin({
@@ -68,7 +69,7 @@ if ( TARGET_ENV === 'development' ) {
         {
           test:    /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
-          loader:  'elm-hot!elm-webpack?debug=true&verbose=true&warn=true'
+          loader:  'elm!elm-webpack?debug=false&verbose=true&warn=true'
         },
         {
           test: /\.(css|scss)$/,
@@ -113,6 +114,16 @@ if ( TARGET_ENV === 'production' ) {
 
     plugins: [
       new CopyWebpackPlugin([
+          {
+              from: 'src/models/',
+              to: 'models/'
+          },
+          {
+              from: 'src/aframe-look-at-component.min.js'
+          },
+          {
+              from: 'src/style.css'
+          }
       ]),
 
       new webpack.optimize.OccurenceOrderPlugin(),
