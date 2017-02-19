@@ -3,9 +3,11 @@
         "votes":{
             ".read": "auth != null",
             "$uid":{
-                ".write": "$uid === auth.uid"        
+                ".write": "$uid === auth.uid",
+                ".validate": "newData.hasChildren(['user','vote']) && newData.child('user').isString() && newData.child('user').val().length < 100 && newData.child('vote').isNumber()"
             }
         }
     }
 }
+
 
