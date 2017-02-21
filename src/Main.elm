@@ -133,7 +133,23 @@ aframeScene : Model -> Html Msg
 aframeScene model =
     scene
         []
-        ([ camera [ position 0 0 0 ] [ cursor [ fuse True ] [] ]
+        ([ camera [ position 0 0 0 ]
+            --[ cursor [ fuse True, fuseTimeout 1 ]
+            [ entity
+                [ attribute "cursor" "fuse:true; fuseTimeout: 1"
+                , attribute "geometry" "primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                , position 0 0 -1
+                , attribute "material" "color:red; shader:flat"
+                ]
+                [{--entity
+                    [ plymodel "src: url(/models/hand.ply)"
+                    , rotation -40 0 0
+                    , scale 0.007 0.007 0.007
+                    , position 0.05 -0.1 -0.3
+                    ]
+                    [] --}
+                ]
+            ]
          , assets []
             []
          , sky [ color (rgb 3 10 28) ] []

@@ -1,4 +1,3 @@
-var config = require("./db");
 var layout = require('aframe-layout').component;
 
 AFRAME.registerComponent('layout', layout);

@@ -34,7 +34,6 @@ var commonConfig = {
 
   plugins: [
       new CopyWebpackPlugin([
-          
       ]),
 
     new HtmlWebpackPlugin({
@@ -64,6 +63,14 @@ if ( TARGET_ENV === 'development' ) {
       progress: true
     },
 
+    plugins: [
+        new CopyWebpackPlugin([
+            {
+                from: 'src/db_local.js',
+                to: './db.js'
+            }          
+        ])
+    ],
     module: {
       loaders: [
         {
@@ -117,6 +124,10 @@ if ( TARGET_ENV === 'production' ) {
           {
               from: 'src/models/',
               to: 'models/'
+          },
+          {
+              from: 'src/db_prod.js',
+              to: './db.js'
           },
           {
               from: 'src/aframe-look-at-component.min.js'
