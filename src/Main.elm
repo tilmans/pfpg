@@ -154,9 +154,13 @@ aframeScene model =
             []
          , sky [ color (rgb 3 10 28) ] []
          ]
-            ++ (List.indexedMap (cardImage model.vote) voteValues)
+            ++ (allCards model.vote)
             ++ (allPlayers model.votes)
         )
+
+
+allCards vote =
+    (List.indexedMap (cardImage vote) voteValues)
 
 
 htmlView : Model -> Html Msg
@@ -286,14 +290,17 @@ scalefactor =
 cardImage : Maybe Int -> Int -> Int -> Html Msg
 cardImage selection index number =
     let
+        xoff =
+            (toFloat index) * 0.6
+
         xpos =
-            toFloat (index - 3)
+            ((toFloat index) - 0.6 * 2) - xoff
 
         neutral =
-            ( 1, -70 )
+            ( 1, -10 )
 
         selected =
-            ( 1.5, -30 )
+            ( 1.3, -10 )
 
         ( ypos, xrot ) =
             case selection of
@@ -306,8 +313,23 @@ cardImage selection index number =
                     else
                         neutral
 
+        distance =
+            toFloat index - 3
+
+        rotsteps =
+            -9
+
+        zrotation =
+            floor (distance * 2 * rotsteps)
+
+        yposStep =
+            0.08
+
+        yposOff =
+            -1 * (abs distance) ^ 2 * yposStep
+
         cardpos =
-            position xpos ypos -5
+            position xpos (ypos + yposOff) -3
 
         modelurl =
             "src: url(/models/" ++ (toString number) ++ ".ply)"
@@ -316,7 +338,7 @@ cardImage selection index number =
             [ plymodel modelurl
             , cardpos
             , scale scalefactor scalefactor scalefactor
-            , rotation xrot 0 0
+            , rotation xrot 20 zrotation
             , onClick (SetVote number)
             ]
             []
