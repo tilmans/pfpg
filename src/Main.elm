@@ -129,38 +129,50 @@ view model =
             aframeScene model
 
 
+cursor =
+    entity
+        [ attribute "cursor" "fuse:true; fuseTimeout: 1"
+        , attribute "geometry" "primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+        , position 0 0 -1
+        , attribute "material" "color:red; shader:flat"
+        ]
+        [{--entity
+        [ plymodel "src: url(/models/hand.ply)"
+        , rotation -40 0 0
+        , scale 0.007 0.007 0.007
+        , position 0.05 -0.1 -0.3
+        ]
+        [] --}
+        ]
+
+
+table =
+    entity
+        [ plymodel "src: url(/models/table.ply)"
+        , scale 0.2 0.2 0.2
+        , rotation -70 0 0
+        , position 0 -2.42 -9.28
+        ]
+        []
+
+
 aframeScene : Model -> Html Msg
 aframeScene model =
     scene
         []
-        ([ camera [ position 0 0 0 ]
-            --[ cursor [ fuse True, fuseTimeout 1 ]
-            [ entity
-                [ attribute "cursor" "fuse:true; fuseTimeout: 1"
-                , attribute "geometry" "primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
-                , position 0 0 -1
-                , attribute "material" "color:red; shader:flat"
-                ]
-                [{--entity
-                    [ plymodel "src: url(/models/hand.ply)"
-                    , rotation -40 0 0
-                    , scale 0.007 0.007 0.007
-                    , position 0.05 -0.1 -0.3
-                    ]
-                    [] --}
-                ]
-            ]
-         , assets []
-            []
-         , sky [ color (rgb 3 10 28) ] []
-         ]
-            ++ (allCards model.vote)
-            ++ (allPlayers model.votes)
+        ((allCards model.vote)
+            :: (allPlayers model.votes)
+            :: table
+            :: [ camera [ position 0 0 0 ] [ cursor ]
+               , assets [] []
+               , sky [ color (rgb 3 10 28) ] []
+               ]
         )
 
 
 allCards vote =
-    (List.indexedMap (cardImage vote) voteValues)
+    entity [ position 0 -2 0 ]
+        (List.indexedMap (cardImage vote) voteValues)
 
 
 htmlView : Model -> Html Msg
@@ -220,7 +232,7 @@ player vote pos =
             ]
 
 
-allPlayers : List Vote -> List (Html msg)
+allPlayers : List Vote -> Html msg
 allPlayers votes =
     let
         segments =
@@ -233,7 +245,7 @@ allPlayers votes =
             seg_length / 2
 
         radius =
-            10
+            5
 
         coords =
             List.map
@@ -244,9 +256,8 @@ allPlayers votes =
                 )
                 (List.range 1 segments)
     in
-        [ entity [ position 0 0 -6, rotation 20 0 0 ]
+        entity [ position 0 -0.19 -8.85, rotation 20 0 0 ]
             (List.map2 (\v pos -> player v pos) votes coords)
-        ]
 
 
 getIdFrom : String -> ( Maybe String, Maybe String )
