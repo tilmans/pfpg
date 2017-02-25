@@ -8,7 +8,6 @@ import AFrame exposing (scene, entity)
 import AFrame.Primitives as AP exposing (..)
 import AFrame.Primitives.Attributes as AA exposing (..)
 import AFrame.Primitives.Camera exposing (..)
-import AFrame.Primitives.Cursor exposing (..)
 import ModelLoader exposing (..)
 import Color exposing (rgb)
 
@@ -129,6 +128,7 @@ view model =
             aframeScene model
 
 
+cursor : Html msg
 cursor =
     entity
         [ attribute "cursor" "fuse:true; fuseTimeout: 1"
@@ -146,6 +146,7 @@ cursor =
         ]
 
 
+table : Html msg
 table =
     entity
         [ plymodel "src: url(/models/table.ply)"
@@ -170,6 +171,7 @@ aframeScene model =
         )
 
 
+allCards : Maybe Int -> Html Msg
 allCards vote =
     entity [ position 0 -2 0 ]
         (List.indexedMap (cardImage vote) voteValues)
@@ -213,23 +215,38 @@ player vote pos =
 
         text =
             vote.user ++ ": " ++ voteText
+
+        voteCard =
+            if vote.vote == -1 then
+                []
+            else
+                [ entity
+                    [ cardModel vote.vote
+                    , position 0.81 -0.73 1.83
+                    , rotation -70 0 0
+                    , scale 0.05 0.05 0.05
+                    ]
+                    []
+                ]
     in
         entity [ lookAt "[camera]", position x 0 y ]
-            [ entity
-                [ plymodel "src: url(/models/chr_headphones.ply)"
-                , scale 0.2 0.2 0.2
-                , rotation -90 0 0
-                ]
-                []
-            , ModelLoader.text
-                [ ModelLoader.value text
-                , ModelLoader.align "center"
-                , anchor "center"
-                , position 0 3 0
-                , scale 2 2 2
-                ]
-                []
-            ]
+            ((entity [] voteCard)
+                :: [ entity
+                        [ plymodel "src: url(/models/chr_headphones.ply)"
+                        , scale 0.2 0.2 0.2
+                        , rotation -90 0 0
+                        ]
+                        []
+                   , ModelLoader.text
+                        [ ModelLoader.value text
+                        , ModelLoader.align "center"
+                        , anchor "center"
+                        , position 0 3 0
+                        , scale 2 2 2
+                        ]
+                        []
+                   ]
+            )
 
 
 allPlayers : List Vote -> Html msg
@@ -298,6 +315,14 @@ scalefactor =
     0.03
 
 
+cardModel number =
+    let
+        modelurl =
+            "src: url(/models/" ++ (toString number) ++ ".ply)"
+    in
+        plymodel modelurl
+
+
 cardImage : Maybe Int -> Int -> Int -> Html Msg
 cardImage selection index number =
     let
@@ -341,12 +366,9 @@ cardImage selection index number =
 
         cardpos =
             position xpos (ypos + yposOff) -3
-
-        modelurl =
-            "src: url(/models/" ++ (toString number) ++ ".ply)"
     in
         entity
-            [ plymodel modelurl
+            [ cardModel number
             , cardpos
             , scale scalefactor scalefactor scalefactor
             , rotation xrot 20 zrotation
