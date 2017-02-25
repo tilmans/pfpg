@@ -26,6 +26,7 @@ type alias Model =
     , name : Maybe String
     , vote : Maybe Int
     , inputName : String
+    , revealed : Bool
     }
 
 
@@ -63,7 +64,7 @@ init location =
                 Just name ->
                     setUser name
     in
-        ( Model [] name Nothing "", cmd )
+        ( Model [] name Nothing "" False, cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -73,8 +74,16 @@ update msg model =
             let
                 _ =
                     Debug.log "Votes" votes
+
+                allVoted =
+                    case model.vote of
+                        Nothing ->
+                            False
+
+                        Just _ ->
+                            (List.all (\v -> v.vote /= -1) votes)
             in
-                { model | votes = votes } ! []
+                { model | votes = votes, revealed = allVoted } ! []
 
         SetVote vote ->
             ( { model | vote = Just vote }, setVote vote )
@@ -163,6 +172,7 @@ aframeScene model =
         []
         ((allCards model.vote)
             :: (allPlayers model.votes)
+            :: (allVotes model.votes model.revealed)
             :: table
             :: [ camera [ position 0 0 0 ] [ cursor ]
                , assets [] []
@@ -204,49 +214,25 @@ main =
 player : Vote -> ( Float, Float ) -> Html msg
 player vote pos =
     let
-        ( x, y ) =
+        ( x, z ) =
             pos
-
-        voteText =
-            if vote.vote == -1 then
-                ""
-            else
-                (toString vote.vote)
-
-        text =
-            vote.user ++ ": " ++ voteText
-
-        voteCard =
-            if vote.vote == -1 then
-                []
-            else
-                [ entity
-                    [ cardModel vote.vote
-                    , position 0.81 -0.73 1.83
-                    , rotation -70 0 0
-                    , scale 0.05 0.05 0.05
-                    ]
-                    []
-                ]
     in
-        entity [ lookAt "[camera]", position x 0 y ]
-            ((entity [] voteCard)
-                :: [ entity
-                        [ plymodel "src: url(/models/chr_headphones.ply)"
-                        , scale 0.2 0.2 0.2
-                        , rotation -90 0 0
-                        ]
-                        []
-                   , ModelLoader.text
-                        [ ModelLoader.value text
-                        , ModelLoader.align "center"
-                        , anchor "center"
-                        , position 0 3 0
-                        , scale 2 2 2
-                        ]
-                        []
-                   ]
-            )
+        entity [ lookAt "[camera]", position x 0 z ]
+            [ entity
+                [ plymodel "src: url(/models/chr_headphones.ply)"
+                , scale 0.2 0.2 0.2
+                , rotation -90 0 0
+                ]
+                []
+            , ModelLoader.text
+                [ ModelLoader.value vote.user
+                , ModelLoader.align "center"
+                , anchor "center"
+                , position 0 3 0
+                , scale 2 2 2
+                ]
+                []
+            ]
 
 
 allPlayers : List Vote -> Html msg
@@ -275,6 +261,61 @@ allPlayers votes =
     in
         entity [ position 0 -0.19 -8.85, rotation 20 0 0 ]
             (List.map2 (\v pos -> player v pos) votes coords)
+
+
+allVotes : List Vote -> Bool -> Html Msg
+allVotes votes done =
+    let
+        segments =
+            List.length votes
+
+        seg_length =
+            pi / (toFloat segments)
+
+        seg_offset =
+            seg_length / 2
+
+        radius =
+            3.5
+
+        coords =
+            List.map
+                (\i ->
+                    ( cos ((toFloat i) * seg_length - seg_offset) * radius
+                    , sin ((toFloat i) * seg_length - seg_offset) * radius * -1
+                    )
+                )
+                (List.range 1 segments)
+    in
+        entity [ position 0 -0.28 -7.99, rotation 20 0 0 ]
+            (List.map2 (\v pos -> cardOnTable v pos done) votes coords)
+
+
+cardOnTable : Vote -> ( Float, Float ) -> Bool -> Html Msg
+cardOnTable vote pos done =
+    let
+        ( x, z ) =
+            pos
+
+        s =
+            0.04
+
+        card =
+            if done then
+                cardModel vote.vote
+            else
+                blankCard
+    in
+        if vote.vote == -1 then
+            entity [] []
+        else
+            entity
+                [ card
+                , rotation -90 0 0
+                , scale s s s
+                , position x 0 z
+                ]
+                []
 
 
 getIdFrom : String -> ( Maybe String, Maybe String )
@@ -315,6 +356,16 @@ scalefactor =
     0.03
 
 
+blankCard : Attribute Msg
+blankCard =
+    let
+        modelurl =
+            "src: url(/models/back.ply)"
+    in
+        plymodel modelurl
+
+
+cardModel : Int -> Attribute msg
 cardModel number =
     let
         modelurl =
