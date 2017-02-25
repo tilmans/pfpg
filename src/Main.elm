@@ -8,9 +8,15 @@ import AFrame exposing (scene, entity)
 import AFrame.Primitives as AP exposing (..)
 import AFrame.Primitives.Attributes as AA exposing (..)
 import AFrame.Primitives.Camera exposing (..)
-import AFrame.Primitives.Cursor exposing (..)
 import ModelLoader exposing (..)
 import Color exposing (rgb)
+import Task
+import Firebase
+import Firebase.Errors exposing (Error)
+
+
+--import Firebase.Authentication
+--import Firebase.Authentication.Types exposing (Auth, User)
 
 
 port updateVotes : (List Vote -> msg) -> Sub msg
@@ -23,7 +29,10 @@ port setVote : Int -> Cmd msg
 
 
 type alias Model =
-    { votes : List Vote
+    { app :
+        Firebase.App
+        --    , currentUser : Maybe User
+    , votes : List Vote
     , name : Maybe String
     , vote : Maybe Int
     , inputName : String
@@ -45,14 +54,33 @@ type Msg
     | SetName
 
 
+
+--    | SignedIn (Result Error User)
+
+
 voteValues : List number
 voteValues =
     [ 0, 1, 2, 3, 5, 8, 13 ]
 
 
-init : Location -> ( Model, Cmd Msg )
-init location =
+type alias Flags =
+    { apiKey : String
+    , authDomain : String
+    , databaseURL : String
+    , storageBucket : String
+    , messagingSenderId : String
+    }
+
+
+init : Flags -> Location -> ( Model, Cmd Msg )
+init flags location =
     let
+        app =
+            Firebase.init firebaseConfig
+
+        model =
+            Model app [] name Nothing ""
+
         ( name, id ) =
             getIdFrom location.search
 
@@ -62,9 +90,25 @@ init location =
                     Cmd.none
 
                 Just name ->
-                    setUser name
+                    Cmd.none
+
+        -- authenticate model
     in
-        ( Model [] name Nothing "", cmd )
+        ( model, cmd )
+
+
+
+{--
+authenticate : Model -> Cmd Msg
+authenticate model =
+    let
+        auth : Auth
+        auth =
+            model.app
+                |> Firebase.Authentication.init
+    in
+        Task.attempt SignedIn (Firebase.Authentication.signInAnonymously auth)
+--}
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -102,6 +146,23 @@ update msg model =
             model ! [ modifyUrl ("?name=" ++ model.inputName) ]
 
 
+
+{--SignedIn (Ok user) ->
+            ( { model | currentUser = Just user }
+            , Cmd.none
+            )
+
+        SignedIn (Err err) ->
+            let
+                _ =
+                    Debug.log "SignedIn.fail" err
+            in
+                ( { model | currentUser = Nothing }
+                , Cmd.none
+                )
+                --}
+
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
     updateVotes VotesUpdated
@@ -129,6 +190,7 @@ view model =
             aframeScene model
 
 
+cursor : Html msg
 cursor =
     entity
         [ attribute "cursor" "fuse:true; fuseTimeout: 1"
@@ -146,6 +208,7 @@ cursor =
         ]
 
 
+table : Html msg
 table =
     entity
         [ plymodel "src: url(/models/table.ply)"
@@ -170,6 +233,7 @@ aframeScene model =
         )
 
 
+allCards : Maybe Int -> Html Msg
 allCards vote =
     entity [ position 0 -2 0 ]
         (List.indexedMap (cardImage vote) voteValues)
@@ -189,9 +253,9 @@ htmlView model =
         ]
 
 
-main : Program Never Model Msg
+main : Program Flags Model Msg
 main =
-    Navigation.program UrlChange
+    Navigation.programWithFlags UrlChange
         { init = init
         , view = view
         , subscriptions = subscriptions

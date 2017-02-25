@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "license": "APACHE2",
   "author": "Tilman Schlenker",
+  "main": "test.html",
   "repository": {
     "type": "git",
     "url": "https://github.com/tilmans/pfpg"
@@ -11,7 +12,8 @@
   "scripts": {
     "start": "webpack-dev-server --hot --inline --content-base src/",
     "build": "rimraf docs && webpack",
-    "watch": "webpack --watch"
+    "watch": "webpack --watch",
+    "serve": "elm-live src/Test.elm --output=public/main.js --dir=public"
   },
   "devDependencies": {
     "autoprefixer": "^6.3.6",
@@ -36,6 +38,7 @@
     "webpack-merge": "^0.14.1"
   },
   "dependencies": {
-    "aframe-extras": "^3.2.6"
+    "aframe-extras": "^3.2.6",
+    "elm-live": "^2.7.4"
   }
 }

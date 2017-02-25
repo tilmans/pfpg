@@ -2,6 +2,7 @@ var layout = require('aframe-layout').component;
 
 AFRAME.registerComponent('layout', layout);
 
+/*
 var authenticated = false;
 var myID = null;
 var node = null;
@@ -46,10 +47,11 @@ function authenticate(user) {
       }
     });    
 }
-
+*/
 var Elm = require( './Main' );
 var app = Elm.Main.embed(document.body);
 
+/*
 app.ports.setUser.subscribe(function(user) {
     console.log("Authenticate "+user);
     guser = user;
@@ -79,3 +81,4 @@ function setVotes(val) {
     console.log(votes);
     app.ports.updateVotes.send(votes);
 }
+*/
