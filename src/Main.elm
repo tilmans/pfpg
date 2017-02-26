@@ -8,6 +8,7 @@ import AFrame exposing (scene, entity)
 import AFrame.Primitives as AP exposing (..)
 import AFrame.Primitives.Attributes as AA exposing (..)
 import AFrame.Primitives.Camera exposing (..)
+import AFrame.Animations as Anim exposing (..)
 import ModelLoader exposing (..)
 import Color exposing (rgb)
 
@@ -25,6 +26,7 @@ type alias Model =
     { votes : List Vote
     , name : Maybe String
     , vote : Maybe Int
+    , voted : Bool
     , inputName : String
     , revealed : Bool
     }
@@ -39,7 +41,8 @@ type alias Vote =
 
 type Msg
     = VotesUpdated (List Vote)
-    | SetVote Int
+    | SetVote
+    | SelectCard Int
     | UrlChange Location
     | Name String
     | SetName
@@ -64,7 +67,7 @@ init location =
                 Just name ->
                     setUser name
     in
-        ( Model [] name Nothing "" False, cmd )
+        ( Model [] name Nothing False "" False, cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -85,8 +88,20 @@ update msg model =
             in
                 { model | votes = votes, revealed = allVoted } ! []
 
-        SetVote vote ->
-            ( { model | vote = Just vote }, setVote vote )
+        SetVote ->
+            let
+                command =
+                    case model.vote of
+                        Nothing ->
+                            Cmd.none
+
+                        Just vote ->
+                            setVote vote
+            in
+                ( { model | voted = True }, command )
+
+        SelectCard vote ->
+            ( { model | vote = Just vote, voted = False }, Cmd.none )
 
         UrlChange location ->
             let
@@ -120,11 +135,6 @@ displayVote vote =
     div []
         [ div [ class "vote" ] [ Html.text (vote.user ++ ": " ++ (toString vote.vote)) ]
         ]
-
-
-displayCard : Int -> Html Msg
-displayCard value =
-    span [ class "card", onClick (SetVote value) ] [ Html.text (toString value) ]
 
 
 view : Model -> Html Msg
@@ -168,22 +178,66 @@ table =
 
 aframeScene : Model -> Html Msg
 aframeScene model =
-    scene
-        []
-        ((allCards model.vote)
-            :: (allPlayers model.votes)
-            :: (allVotes model.votes model.revealed)
-            :: table
-            :: [ camera [ position 0 0 0 ] [ cursor ]
-               , assets [] []
-               , sky [ color (rgb 3 10 28) ] []
-               ]
-        )
+    let
+        modelAnimation =
+            case model.vote of
+                Nothing ->
+                    []
+
+                Just _ ->
+                    [ animation
+                        [ attribute_ "material.opacity"
+                        , dur 1000
+                        , to "0.5"
+                        , from "0.0"
+                        , attribute "direction" "alternate"
+                        , attribute "easing" "ease-out"
+                        , attribute "repeat" "indefinite"
+                        ]
+                        []
+                    ]
+
+        cardSelection =
+            if model.voted then
+                entity
+                    [ cardModel (Maybe.withDefault 0 model.vote)
+                    , scale 0.04 0.04 0.04
+                    , rotation -70 0 0
+                    , position -0.11 -1.06 -5.89
+                    ]
+                    []
+            else
+                entity
+                    [ rotation -70 0 0
+                    , scale 1 1.65 1
+                    , position 0 -1.03 -5.89
+                    , attribute "geometry" "primitive: plane"
+                    , attribute "material" "shader:flat; opacity:1; color:#f00"
+                    , onClick SetVote
+                    ]
+                    modelAnimation
+    in
+        scene
+            []
+            ((allCards model.vote)
+                :: (allPlayers model.votes)
+                :: (allVotes model.votes model.revealed)
+                :: table
+                :: cardSelection
+                :: [ camera
+                        [ position 0 0 0
+                        , rotation -15 0 0
+                        ]
+                        [ cursor ]
+                   , assets [] []
+                   , sky [ color (rgb 3 10 28) ] []
+                   ]
+            )
 
 
 allCards : Maybe Int -> Html Msg
 allCards vote =
-    entity [ position 0 -2 0 ]
+    entity [ position 0 -2.32 0 ]
         (List.indexedMap (cardImage vote) voteValues)
 
 
@@ -423,6 +477,6 @@ cardImage selection index number =
             , cardpos
             , scale scalefactor scalefactor scalefactor
             , rotation xrot 20 zrotation
-            , onClick (SetVote number)
+            , onClick (SelectCard number)
             ]
             []
