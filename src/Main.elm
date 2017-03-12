@@ -1,4 +1,4 @@
-port module Main exposing (..)
+module Main exposing (..)
 
 import Html exposing (..)
 import Html.Attributes as HA exposing (..)
@@ -6,41 +6,49 @@ import Html.Events exposing (..)
 import Navigation exposing (Location, modifyUrl)
 import AFrame exposing (scene)
 import Geometry exposing (..)
-
-
-port updateVotes : (List Vote -> msg) -> Sub msg
-
-
-port setUser : String -> Cmd msg
-
-
-port setVote : Int -> Cmd msg
+import Firebase
+import Firebase.Database
+import Firebase.Database.Types
+import Firebase.Database.Reference
+import Firebase.Database.Snapshot
+import Task
+import Firebase.Errors exposing (Error)
+import Firebase.Authentication
+import Firebase.Authentication.User
+import Firebase.Authentication.Types exposing (Auth, User)
+import Json.Encode
+import Json.Decode exposing (Decoder, field, map2, int, string, keyValuePairs)
 
 
 type alias Model =
-    { votes : List Vote
+    { votes : List ( String, Vote )
     , name : Maybe String
     , vote : Maybe Int
     , voted : Bool
     , inputName : String
     , revealed : Bool
+    , app : Firebase.App
+    , db : Firebase.Database.Types.Database
+    , myvote : Maybe Firebase.Database.Types.Reference
+    , user : Maybe User
     }
 
 
 type alias Vote =
-    { id : String
-    , user : String
+    { name : String
     , vote : Int
     }
 
 
 type Msg
-    = VotesUpdated (List Vote)
-    | SetVote
+    = SetVote
     | SelectCard Int
     | UrlChange Location
     | Name String
     | SetName
+    | GameUpdate Firebase.Database.Types.Snapshot
+    | SignedIn (Result Error User)
+    | SetRoot (Result Error ())
 
 
 voteValues : List number
@@ -48,11 +56,45 @@ voteValues =
     [ 0, 1, 2, 3, 5, 8, 13 ]
 
 
-init : Location -> ( Model, Cmd Msg )
-init location =
+type alias Config =
+    { apiKey : String
+    , databaseURL : String
+    , authDomain : String
+    , storageBucket : String
+    , messagingSenderId : String
+    }
+
+
+init : Config -> Location -> ( Model, Cmd Msg )
+init flags location =
     let
         ( name, id ) =
             getIdFrom location.search
+
+        _ =
+            Debug.log "Flags" flags
+
+        app : Firebase.App
+        app =
+            Firebase.init
+                { apiKey = flags.apiKey
+                , databaseURL = flags.databaseURL
+                , authDomain = flags.authDomain
+                , storageBucket = flags.storageBucket
+                , messagingSenderId = flags.messagingSenderId
+                }
+
+        {-
+           It's not necessary to store the database, but it will make it easier
+           since all your database interactions are going to either be in `update`
+           or `subscriptions`, and both have access to your model.
+        -}
+        db : Firebase.Database.Types.Database
+        db =
+            Firebase.Database.init app
+
+        model =
+            Model [] name Nothing False "" False app db Nothing Nothing
 
         cmd =
             case name of
@@ -60,29 +102,14 @@ init location =
                     Cmd.none
 
                 Just name ->
-                    setUser name
+                    setUser model
     in
-        ( Model [] name Nothing False "" False, cmd )
+        ( model, cmd )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        VotesUpdated votes ->
-            let
-                _ =
-                    Debug.log "Votes" votes
-
-                allVoted =
-                    case model.vote of
-                        Nothing ->
-                            False
-
-                        Just _ ->
-                            (List.all (\v -> v.vote /= -1) votes)
-            in
-                { model | votes = votes, revealed = allVoted } ! []
-
         SetVote ->
             let
                 command =
@@ -90,8 +117,17 @@ update msg model =
                         Nothing ->
                             Cmd.none
 
-                        Just vote ->
-                            setVote vote
+                        Just voteval ->
+                            case model.myvote of
+                                Nothing ->
+                                    Cmd.none
+
+                                Just ref ->
+                                    let
+                                        vote =
+                                            Vote (Maybe.withDefault "" model.name) voteval
+                                    in
+                                        setVote vote ref
             in
                 ( { model | voted = True }, command )
 
@@ -109,7 +145,7 @@ update msg model =
                             Cmd.none
 
                         Just name ->
-                            setUser name
+                            setUser model
             in
                 { model | name = name } ! [ cmd ]
 
@@ -119,10 +155,102 @@ update msg model =
         SetName ->
             model ! [ modifyUrl ("?name=" ++ model.inputName) ]
 
+        GameUpdate snapshot ->
+            let
+                decoded =
+                    Json.Decode.decodeValue jsonDecodeVoteList (Firebase.Database.Snapshot.value snapshot)
+
+                votes =
+                    case decoded of
+                        Err err ->
+                            []
+
+                        Ok votes ->
+                            votes
+
+                _ =
+                    Debug.log "All Votes" votes
+
+                allVoted =
+                    case model.vote of
+                        Nothing ->
+                            False
+
+                        Just _ ->
+                            (List.all (\( k, v ) -> v.vote /= -1) votes)
+            in
+                { model | votes = votes, revealed = allVoted } ! []
+
+        SignedIn (Ok user) ->
+            let
+                userID =
+                    Firebase.Authentication.User.uid user
+
+                _ =
+                    Debug.log "User" userID
+
+                myvote =
+                    model.db |> Firebase.Database.ref (Just ("votes/" ++ userID))
+
+                vote =
+                    Vote "Bob" -1
+
+                cmd =
+                    setVote vote myvote
+            in
+                { model | user = Just user, myvote = Just myvote } ! [ cmd ]
+
+        SignedIn (Err err) ->
+            model ! []
+
+        SetRoot (Err err) ->
+            let
+                _ =
+                    Debug.log "Error" err
+            in
+                model ! []
+
+        SetRoot (Ok ()) ->
+            let
+                _ =
+                    Debug.log "OK" ""
+            in
+                model ! []
+
+
+jsonEncode : Vote -> Json.Encode.Value
+jsonEncode vote =
+    Json.Encode.object [ ( "user", Json.Encode.string vote.name ), ( "vote", Json.Encode.int vote.vote ) ]
+
+
+jsonDecodeVote : Decoder Vote
+jsonDecodeVote =
+    map2 Vote
+        (field "user" string)
+        (field "vote" int)
+
+
+jsonDecodeVoteList : Decoder (List ( String, Vote ))
+jsonDecodeVoteList =
+    keyValuePairs jsonDecodeVote
+
+
+setVote : Vote -> Firebase.Database.Types.Reference -> Cmd Msg
+setVote vote ref =
+    let
+        _ =
+            Debug.log "Set Vote" vote
+    in
+        Task.attempt SetRoot (Firebase.Database.Reference.set (jsonEncode vote) ref)
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    updateVotes VotesUpdated
+    let
+        ref =
+            model.db |> Firebase.Database.ref (Just "votes")
+    in
+        Firebase.Database.Reference.on "value" ref GameUpdate
 
 
 view : Model -> Html Msg
@@ -135,9 +263,9 @@ view model =
             aframeScene model
 
 
-main : Program Never Model Msg
+main : Program Config Model Msg
 main =
-    Navigation.program UrlChange
+    Navigation.programWithFlags UrlChange
         { init = init
         , view = view
         , subscriptions = subscriptions
@@ -145,19 +273,38 @@ main =
         }
 
 
+setUser : Model -> Cmd Msg
+setUser model =
+    let
+        auth : Auth
+        auth =
+            model.app |> Firebase.Authentication.init
+    in
+        Task.attempt SignedIn (Firebase.Authentication.signInAnonymously auth)
+
+
 aframeScene : Model -> Html Msg
 aframeScene model =
-    scene
-        []
-        [ (allCards model.vote voteValues SelectCard)
-        , (allPlayers (List.map (\v -> v.user) model.votes))
-        , (allVotes (List.map (\v -> v.vote) model.votes) model.revealed)
-        , Geometry.table
-        , cardSelection model.voted model.vote SetVote
-        , sceneCamera
-        , sceneAssets
-        , sceneSky
-        ]
+    let
+        filteredPlayers =
+            case model.user of
+                Nothing ->
+                    model.votes
+
+                Just user ->
+                    List.filter (\( k, v ) -> k /= (Firebase.Authentication.User.uid user)) model.votes
+    in
+        scene
+            []
+            [ (allCards model.vote voteValues SelectCard)
+            , (allPlayers (List.map (\( k, v ) -> v.name) filteredPlayers))
+            , (allVotes (List.map (\( k, v ) -> v.vote) filteredPlayers) model.revealed)
+            , Geometry.table
+            , cardSelection model.voted model.vote SetVote
+            , sceneCamera
+            , sceneAssets
+            , sceneSky
+            ]
 
 
 htmlView : Model -> Html Msg
@@ -176,7 +323,7 @@ htmlView model =
 displayVote : Vote -> Html msg
 displayVote vote =
     div []
-        [ div [ class "vote" ] [ Html.text (vote.user ++ ": " ++ (toString vote.vote)) ]
+        [ div [ class "vote" ] [ Html.text (vote.name ++ ": " ++ (toString vote.vote)) ]
         ]
 
 
