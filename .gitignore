@@ -2,6 +2,6 @@ elm-stuff
 node_modules
 npm-debug.log
 docs
+db_local.json
 db_local.js
 main.js
-db_local.json
