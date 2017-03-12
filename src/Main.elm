@@ -49,6 +49,7 @@ type Msg
     | GameUpdate Firebase.Database.Types.Snapshot
     | SignedIn (Result Error User)
     | SetRoot (Result Error ())
+    | DisconnectSet (Result Error ())
 
 
 voteValues : List number
@@ -191,6 +192,12 @@ update msg model =
 
                 myvote =
                     model.db |> Firebase.Database.ref (Just ("votes/" ++ userID))
+
+                onDis =
+                    myvote
+                        |> Firebase.Database.Reference.onDisconnect
+                        |> Firebase.Database.OnDisconnect.set Json.Encode.null
+                        |> Task.attempt DisconnectSet
 
                 vote =
                     Vote "Bob" -1

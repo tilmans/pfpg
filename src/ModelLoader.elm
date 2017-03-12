@@ -24,13 +24,16 @@ text =
     node "a-text"
 
 
+anchor : String -> Attribute msg
 anchor value =
     attribute "anchor" value
 
 
+value : String -> Attribute msg
 value value =
     attribute "value" value
 
 
+align : String -> Attribute msg
 align value =
     attribute "align" value
