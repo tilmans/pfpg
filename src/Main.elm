@@ -11,6 +11,7 @@ import Firebase.Database
 import Firebase.Database.Types
 import Firebase.Database.Reference
 import Firebase.Database.Snapshot
+import Firebase.Database.OnDisconnect
 import Task
 import Firebase.Errors exposing (Error)
 import Firebase.Authentication
@@ -199,13 +200,16 @@ update msg model =
                         |> Firebase.Database.OnDisconnect.set Json.Encode.null
                         |> Task.attempt DisconnectSet
 
+                name =
+                    Maybe.withDefault "Unknown" model.name
+
                 vote =
-                    Vote "Bob" -1
+                    Vote name -1
 
                 cmd =
                     setVote vote myvote
             in
-                { model | user = Just user, myvote = Just myvote } ! [ cmd ]
+                { model | user = Just user, myvote = Just myvote } ! [ cmd, onDis ]
 
         SignedIn (Err err) ->
             model ! []
@@ -223,6 +227,16 @@ update msg model =
                     Debug.log "OK" ""
             in
                 model ! []
+
+        DisconnectSet (Err err) ->
+            let
+                _ =
+                    Debug.log "Error" err
+            in
+                model ! []
+
+        DisconnectSet (Ok _) ->
+            model ! []
 
 
 jsonEncode : Vote -> Json.Encode.Value
