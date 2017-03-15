@@ -166,7 +166,7 @@ cardSelection voted vote event =
             , scale 1 1.65 1
             , position 0 -1.03 -5.89
             , attribute "geometry" "primitive: plane"
-            , attribute "material" "shader:flat; opacity:1; color:#f00"
+            , attribute "material" "shader:flat; opacity:0; color:#f00"
             , onClick event
             ]
             (modelAnimation vote)

@@ -114,27 +114,40 @@ update msg model =
     case msg of
         SetVote ->
             let
-                command =
+                ( command, voted ) =
                     case model.vote of
                         Nothing ->
-                            Cmd.none
+                            ( Cmd.none, model.voted )
 
                         Just voteval ->
                             case model.myvote of
                                 Nothing ->
-                                    Cmd.none
+                                    ( Cmd.none, model.voted )
 
                                 Just ref ->
                                     let
                                         vote =
                                             Vote (Maybe.withDefault "" model.name) voteval
                                     in
-                                        setVote vote ref
+                                        ( setVote vote ref, True )
             in
-                ( { model | voted = True }, command )
+                ( { model | voted = voted }, command )
 
         SelectCard vote ->
-            ( { model | vote = Just vote, voted = False }, Cmd.none )
+            let
+                cmd =
+                    case model.myvote of
+                        Nothing ->
+                            Cmd.none
+
+                        Just ref ->
+                            let
+                                vote =
+                                    Vote (Maybe.withDefault "" model.name) -1
+                            in
+                                setVote vote ref
+            in
+                ( { model | vote = Just vote, voted = False }, cmd )
 
         UrlChange location ->
             let
